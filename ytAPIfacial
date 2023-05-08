@@ -1,1 +1,1249 @@
 
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "d33d1573",
+   "metadata": {
+    "heading_collapsed": true
+   },
+   "source": [
+    "# Imports, Functions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "b5733334",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:00.767762Z",
+     "start_time": "2022-08-12T13:28:58.194030Z"
+    },
+    "code_folding": [],
+    "hidden": true
+   },
+   "outputs": [],
+   "source": [
+    "# imports\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import seaborn as sns\n",
+    "\n",
+    "# prepare api and channel id\n",
+    "import scrapetube\n",
+    "\n",
+    "# get channel id by going on YT channel's home page (https://www.youtube.com/c/______)\n",
+    "# look at source code (ctrl+u) and then find \"externalId\" : \"____________\"\n",
+    "# only one channel at the moment but for future scraping automation recall ^\n",
+    "channel_id = \"UCjRkTl_HP4zOh3UFaThgRZw\"\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "f08e75d3",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:01.628042Z",
+     "start_time": "2022-08-12T13:29:01.609093Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# def get_methods(object, spacing=20):\n",
+    "# input : object (ex : np, sns )\n",
+    "# print all methods available for inputted object\n",
+    "def get_methods(object, spacing=20):\n",
+    "    methodList = []\n",
+    "    for method_name in dir(object):\n",
+    "        try:\n",
+    "            if callable(getattr(object, method_name)):\n",
+    "                methodList.append(str(method_name))\n",
+    "        except Exception:\n",
+    "            methodList.append(str(method_name))\n",
+    "        processFunc = (lambda s: ' '.join(s.split())) or (lambda s: s)\n",
+    "    for method in methodList:\n",
+    "        try:\n",
+    "            print(str(method.ljust(spacing)) + ' ' +\n",
+    "                  processFunc(str(getattr(object, method).__doc__)[0:90]))\n",
+    "        except Exception:\n",
+    "            print(method.ljust(spacing) + ' ' + ' getattr() failed')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "8802634e",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:02.344898Z",
+     "start_time": "2022-08-12T13:29:02.328941Z"
+    },
+    "code_folding": [
+     0,
+     3
+    ],
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# define display_side_by_side(df1,df2, titles) side-by side\n",
+    "from IPython.display import display_html\n",
+    "from itertools import chain,cycle\n",
+    "def display_side_by_side(*args,titles=cycle([''])):\n",
+    "    html_str=''\n",
+    "    for df,title in zip(args, chain(titles,cycle(['</br>'])) ):\n",
+    "        html_str+='<th style=\"text-align:center\"><td style=\"vertical-align:top\">'\n",
+    "        html_str+=f'<h2>{title}</h2>'\n",
+    "        html_str+=df.to_html().replace('table','table style=\"display:inline\"')\n",
+    "        html_str+='</td></th>'\n",
+    "    display_html(html_str,raw=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7a4e7dc8",
+   "metadata": {
+    "deletable": false,
+    "editable": false,
+    "heading_collapsed": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "source": [
+    "# Selenium, webscrape channel page"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c830c1ed",
+   "metadata": {
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from googleapiclient.discovery import build\n",
+    "# identify api parameters\n",
+    "ytapi_key = \"AIzaSyDkC45TCDb6s6hAhMqRAIl0dpfkZThLfA8\"\n",
+    "yt = build(\"youtube\", \"v3\", developerKey = ytapi_key)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "3cb81341",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-11T00:17:25.930503Z",
+     "start_time": "2022-08-11T00:17:21.410359Z"
+    },
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\rafal\\AppData\\Local\\Temp\\ipykernel_13508\\3747495140.py:18: DeprecationWarning: executable_path has been deprecated, please pass in a Service object\n",
+      "  browser = selenium_webdriver.Firefox(firefox_binary=binary,\n",
+      "C:\\Users\\rafal\\AppData\\Local\\Temp\\ipykernel_13508\\3747495140.py:18: DeprecationWarning: capabilities and desired_capabilities have been deprecated, please pass in a Service object\n",
+      "  browser = selenium_webdriver.Firefox(firefox_binary=binary,\n",
+      "C:\\Users\\rafal\\AppData\\Local\\Temp\\ipykernel_13508\\3747495140.py:18: DeprecationWarning: firefox_binary has been deprecated, please pass in a Service object\n",
+      "  browser = selenium_webdriver.Firefox(firefox_binary=binary,\n"
+     ]
+    }
+   ],
+   "source": [
+    "from selenium import webdriver as selenium_webdriver\n",
+    "from selenium.webdriver.firefox.firefox_binary import FirefoxBinary\n",
+    "from selenium.webdriver.firefox.options import Options as selenium_options\n",
+    "from selenium.webdriver.common.desired_capabilities import DesiredCapabilities as selenium_DesiredCapabilities\n",
+    "\n",
+    "binary = FirefoxBinary('C:\\\\Program Files\\\\Mozilla Firefox\\\\firefox.exe')\n",
+    "\n",
+    "# set screen appearance of selenium window under browser_options\n",
+    "browser_options = selenium_options()\n",
+    "browser_options.add_argument(\"--headless\")\n",
+    "browser_options.add_argument(\"--window-size=1920,1080\")\n",
+    "\n",
+    "# ensure marionette is working\n",
+    "capabilities_argument = selenium_DesiredCapabilities().FIREFOX\n",
+    "capabilities_argument[\"marionette\"] = True\n",
+    "\n",
+    "# create selenium webdriver object\n",
+    "browser = selenium_webdriver.Firefox(firefox_binary=binary, \n",
+    "                                    options=browser_options,\n",
+    "                                    capabilities=capabilities_argument,\n",
+    "            executable_path=r'C:/ProgramData/Microsoft/Windows/Start Menu/Programs/Python 2.7/geckodriver.exe')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "dbdc1550",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-11T00:22:18.963646Z",
+     "start_time": "2022-08-11T00:22:17.258703Z"
+    },
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [
+    {
+     "ename": "AttributeError",
+     "evalue": "'WebDriver' object has no attribute 'find_elements_by_xpath'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[1;31mAttributeError\u001b[0m                            Traceback (most recent call last)",
+      "Input \u001b[1;32mIn [6]\u001b[0m, in \u001b[0;36m<cell line: 6>\u001b[1;34m()\u001b[0m\n\u001b[0;32m      4\u001b[0m browser\u001b[38;5;241m.\u001b[39mexecute_script(\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124mwindow.scrollTo(0, 1000000);\u001b[39m\u001b[38;5;124m\"\u001b[39m)\n\u001b[0;32m      5\u001b[0m \u001b[38;5;66;03m# collect all titles of youtube videos ?\u001b[39;00m\n\u001b[1;32m----> 6\u001b[0m titles \u001b[38;5;241m=\u001b[39m \u001b[43mbrowser\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mfind_elements_by_xpath\u001b[49m(\u001b[38;5;124m'\u001b[39m\u001b[38;5;124m//a[@id=\u001b[39m\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124mvideo-title\u001b[39m\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124m]\u001b[39m\u001b[38;5;124m'\u001b[39m)\n",
+      "\u001b[1;31mAttributeError\u001b[0m: 'WebDriver' object has no attribute 'find_elements_by_xpath'"
+     ]
+    }
+   ],
+   "source": [
+    "# establish URL for selenium to scrape\n",
+    "browser.get('https://www.youtube.com/channel/UCjRkTl_HP4zOh3UFaThgRZw')\n",
+    "# scroll to bottom of page; overcome youtube's lazy loading\n",
+    "browser.execute_script(\"window.scrollTo(0, 1000000);\")\n",
+    "# collect all titles of youtube videos ?\n",
+    "titles = browser.find_elements_by_xpath('//a[@id=\"video-title\"]')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8a1534f9",
+   "metadata": {
+    "deletable": false,
+    "editable": false,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "source": [
+    "# Scrapetube"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 92,
+   "id": "4197a158",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T15:13:29.801859Z",
+     "start_time": "2022-08-12T15:13:29.786238Z"
+    },
+    "code_folding": [],
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [],
+   "source": [
+    "# get all youtube channel videos ; has to be rerun sometimes?\n",
+    "videos = scrapetube.get_channel(channel_id)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3560e4ee",
+   "metadata": {},
+   "source": [
+    "## Prepare for Data Collection\n",
+    "Ensure each video has the same data collected for it."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a4b67ab9",
+   "metadata": {
+    "heading_collapsed": true
+   },
+   "source": [
+    "### Find missing/extra column (richThumbnail)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "3249975c",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:29.922025Z",
+     "start_time": "2022-08-12T13:29:04.609380Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "collapsed": true,
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "l \n",
+      "12    631\n",
+      "11     26\n",
+      "dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "# fakedf ; record number of items each video has\n",
+    "videos = scrapetube.get_channel(channel_id)\n",
+    "\n",
+    "fakedf = pd.DataFrame( columns = [\"length\"] )\n",
+    "# loop through all videos (break after first video) to access feature names\n",
+    "for v in videos:\n",
+    "    # glimpse at how many features each video has\n",
+    "    fakedf.loc[len(fakedf)] = ( len(v.items()) )\n",
+    "\n",
+    "# use this for double checking that enough values are in check11\n",
+    "print(fakedf.value_counts())\n",
+    "\n",
+    "# index value of each video that has only 11 attributes rather than 12\n",
+    "# fakedf.value_counts() # use this for double checking that enough values are in check11\n",
+    "check11 = list( fakedf[fakedf[\"length\"] == 11].index )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "b8740852",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:54.440022Z",
+     "start_time": "2022-08-12T13:29:29.922025Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "collapsed": true,
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "      <th>4</th>\n",
+       "      <th>5</th>\n",
+       "      <th>6</th>\n",
+       "      <th>7</th>\n",
+       "      <th>8</th>\n",
+       "      <th>9</th>\n",
+       "      <th>10</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>6</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>7</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>8</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>10</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>11</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>13</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>15</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>16</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>17</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>18</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>20</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>21</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>22</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>23</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>24</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>25</th>\n",
+       "      <td>videoId</td>\n",
+       "      <td>thumbnail</td>\n",
+       "      <td>title</td>\n",
+       "      <td>publishedTimeText</td>\n",
+       "      <td>viewCountText</td>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "      <td>ownerBadges</td>\n",
+       "      <td>trackingParams</td>\n",
+       "      <td>shortViewCountText</td>\n",
+       "      <td>menu</td>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "         0          1      2                  3              4   \\\n",
+       "0   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "1   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "2   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "3   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "4   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "5   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "6   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "7   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "8   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "9   videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "10  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "11  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "12  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "13  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "14  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "15  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "16  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "17  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "18  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "19  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "20  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "21  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "22  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "23  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "24  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "25  videoId  thumbnail  title  publishedTimeText  viewCountText   \n",
+       "\n",
+       "                    5            6               7                   8     9   \\\n",
+       "0   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "1   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "2   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "3   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "4   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "5   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "6   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "7   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "8   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "9   navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "10  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "11  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "12  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "13  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "14  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "15  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "16  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "17  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "18  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "19  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "20  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "21  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "22  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "23  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "24  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "25  navigationEndpoint  ownerBadges  trackingParams  shortViewCountText  menu   \n",
+       "\n",
+       "                   10  \n",
+       "0   thumbnailOverlays  \n",
+       "1   thumbnailOverlays  \n",
+       "2   thumbnailOverlays  \n",
+       "3   thumbnailOverlays  \n",
+       "4   thumbnailOverlays  \n",
+       "5   thumbnailOverlays  \n",
+       "6   thumbnailOverlays  \n",
+       "7   thumbnailOverlays  \n",
+       "8   thumbnailOverlays  \n",
+       "9   thumbnailOverlays  \n",
+       "10  thumbnailOverlays  \n",
+       "11  thumbnailOverlays  \n",
+       "12  thumbnailOverlays  \n",
+       "13  thumbnailOverlays  \n",
+       "14  thumbnailOverlays  \n",
+       "15  thumbnailOverlays  \n",
+       "16  thumbnailOverlays  \n",
+       "17  thumbnailOverlays  \n",
+       "18  thumbnailOverlays  \n",
+       "19  thumbnailOverlays  \n",
+       "20  thumbnailOverlays  \n",
+       "21  thumbnailOverlays  \n",
+       "22  thumbnailOverlays  \n",
+       "23  thumbnailOverlays  \n",
+       "24  thumbnailOverlays  \n",
+       "25  thumbnailOverlays  "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# check columns of all videos with only 11 features\n",
+    "\n",
+    "# get all youtube channel videos\n",
+    "videos = scrapetube.get_channel(channel_id)\n",
+    "\n",
+    "\n",
+    "df11 = pd.DataFrame( columns = np.arange(11) )\n",
+    "for v in videos:\n",
+    "    if (len(v.items()) == 11):\n",
+    "        # create list of all 11 features \n",
+    "        l11 = []\n",
+    "        for feature in v.items(): \n",
+    "            l11.append( feature[0] )\n",
+    "        # append list of 11 features to dataframe\n",
+    "        df11.loc[len(df11)] = l11\n",
+    "        \n",
+    "display( df11 )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4058a67e",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-11T16:36:10.397323Z",
+     "start_time": "2022-08-11T16:36:10.383444Z"
+    },
+    "hidden": true
+   },
+   "source": [
+    "Clearly all columns with only 11 features are missing the same column (rather than each video missing some different column)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "27fb7317",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:32:45.206509Z",
+     "start_time": "2022-08-12T13:32:44.895553Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# prepare dataframe column names     \n",
+    "\n",
+    "# get all youtube channel videos\n",
+    "videos = scrapetube.get_channel(channel_id, sort_by=\"oldest\")\n",
+    "\n",
+    "colnames = []\n",
+    "# loop through all videos (break after first video) to access feature names\n",
+    "for v in videos:\n",
+    "    # glimpse at all available features for a video and append them to videofeatures\n",
+    "    for feature in v.items(): \n",
+    "        colnames.append( feature[0] )\n",
+    "    # all videos have same features collected, so break after one loop\n",
+    "    break"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "ed20a7fc",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T13:29:54.732209Z",
+     "start_time": "2022-08-12T13:29:54.720222Z"
+    },
+    "collapsed": true,
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<th style=\"text-align:center\"><td style=\"vertical-align:top\"><h2>11 Features</h2><table style=\"display:inline\" border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>1</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>videoId</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>thumbnail</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>title</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>publishedTimeText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>viewCountText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>6</th>\n",
+       "      <td>ownerBadges</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>7</th>\n",
+       "      <td>trackingParams</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>8</th>\n",
+       "      <td>shortViewCountText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>menu</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>10</th>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table style=\"display:inline\"></td></th><th style=\"text-align:center\"><td style=\"vertical-align:top\"><h2>12 Features</h2><table style=\"display:inline\" border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>videoId</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>thumbnail</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>title</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>publishedTimeText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>viewCountText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>navigationEndpoint</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>6</th>\n",
+       "      <td>ownerBadges</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>7</th>\n",
+       "      <td>trackingParams</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>8</th>\n",
+       "      <td>shortViewCountText</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>menu</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>10</th>\n",
+       "      <td>thumbnailOverlays</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>11</th>\n",
+       "      <td>richThumbnail</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table style=\"display:inline\"></td></th>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "pd.Series(colnames).isin( df11.loc[1] )\n",
+    "\n",
+    "display_side_by_side( pd.DataFrame(df11.loc[1]), pd.DataFrame(colnames), titles=[\"11 Features\", \"12 Features\"] )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2f1d5c24",
+   "metadata": {
+    "deletable": false,
+    "editable": false,
+    "hidden": true,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "source": [
+    "Clearly richThumbnail should be removed for simplicity since it would be far more difficult to extrapolate, and given that its information is not that necessary for current goals there is no reason to eliminate the 26 (as of 8/12/2022) videos that lack the richThumbnail data."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "347b28a3",
+   "metadata": {},
+   "source": [
+    "### Collect all columns from first video and sort into dataframe"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 93,
+   "id": "5e405c4c",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T15:13:31.437609Z",
+     "start_time": "2022-08-12T15:13:31.137139Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "deletable": false,
+    "editable": false,
+    "run_control": {
+     "frozen": true
+    },
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "# get all features and store them in a list for use as column names\n",
+    "vcolnames = []\n",
+    "# for each video on the channel (videos scraped entire channel)\n",
+    "# append key name of each dictionary pair to use as column names in data frame\n",
+    "# avoid repitition with limit (each video has same qualities recorded)\n",
+    "for v, limit in zip(videos, range(1)):\n",
+    "    # append each feature to vfeatures besides richThumbnail\n",
+    "    [vcolnames.append(feature[0]) for feature in v.items() if (feature[0] != \"richThumbnail\")] "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 159,
+   "id": "3801ae89",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T16:26:07.745317Z",
+     "start_time": "2022-08-12T16:25:42.137800Z"
+    },
+    "code_folding": [
+     0
+    ],
+    "deletable": false,
+    "editable": false,
+    "run_control": {
+     "frozen": true
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# prepare dataframe of all features for each video\n",
+    "videos = scrapetube.get_channel(channel_id)\n",
+    "\n",
+    "# prepare dataframe where each row is a video and each column is one of scrapetubes measured features\n",
+    "videosdf = pd.DataFrame( columns = vcolnames )\n",
+    "\n",
+    "# loop through all videos and for each video append all its collected features to videosdf\n",
+    "for v in videos:\n",
+    "    vfeatures = []\n",
+    "    [vfeatures.append(feature[1]) for feature in v.items() if (feature[0] != \"richThumbnail\")]\n",
+    "    videosdf.loc[len(videosdf)] = vfeatures"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 211,
+   "id": "0a3bb297",
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2022-08-12T17:02:00.484010Z",
+     "start_time": "2022-08-12T17:02:00.468368Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[{'url': 'https://i.ytimg.com/vi/S_36Scj0ASI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDunytULebP-lgdyC6YRzWFBvTYKg', 'width': 168, 'height': 94}, {'url': 'https://i.ytimg.com/vi/S_36Scj0ASI/hqdefault.jpg?sqp=-oaymwEbCMQBEG5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDpdFyVM495NlyzTuGjuvMYw4m8GQ', 'width': 196, 'height': 110}, {'url': 'https://i.ytimg.com/vi/S_36Scj0ASI/hqdefault.jpg?sqp=-oaymwEcCPYBEIoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDM2u3p61JgruuEJ2ZIpIZqi9Wkmw', 'width': 246, 'height': 138}, {'url': 'https://i.ytimg.com/vi/S_36Scj0ASI/hqdefault.jpg?sqp=-oaymwEcCNACELwBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB0l-DlZF8JZJ35JWcsPPji4bTkTw', 'width': 336, 'height': 188}]\n",
+      "[{'text': 'PERFECTLY TIMED MOMENTS ON TWITCH!'}]\n",
+      "\n",
+      "\n",
+      "\n",
+      "1\n",
+      "\n",
+      "4\n"
+     ]
+    }
+   ],
+   "source": [
+    "# loop through columns; may be too much\n",
+    "for colname, coldata in videosdf.iteritems():\n",
+    "    rowindex = 200\n",
+    "#     print( (coldata[rowindex]) )    \n",
+    "    clean_column( coldata[rowindex] )    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6837307c",
+   "metadata": {
+    "heading_collapsed": true
+   },
+   "source": [
+    "## Work with Data\n",
+    "Data for each video has been collected."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d2415fe7",
+   "metadata": {
+    "hidden": true
+   },
+   "source": [
+    "To account for varying posted dates, examine distribution of views for all videos on channel and find average plateau value (views increase minimally after around a week, so cut off last week"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2ba9ba47",
+   "metadata": {
+    "hidden": true
+   },
+   "source": [
+    "To account for varying posted dates, examine distribution of views for all videos on channel and find average plateau value (views increase minimally after around a week, so cut off last week"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
